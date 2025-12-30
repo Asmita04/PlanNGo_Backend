@@ -12,7 +12,7 @@ using WebAppApi13.Data;
 namespace PlanNGo_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251227123400_first")]
+    [Migration("20251230125537_first")]
     partial class first
     {
         /// <inheritdoc />
@@ -33,11 +33,10 @@ namespace PlanNGo_Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientId"));
 
-                    b.Property<DateOnly>("Dob")
+                    b.Property<DateOnly?>("Dob")
                         .HasColumnType("date");
 
                     b.Property<string>("Gender")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -110,17 +109,15 @@ namespace PlanNGo_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrganizerId"));
 
                     b.Property<string>("Bio")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsVerified")
+                    b.Property<bool?>("IsVerified")
                         .HasColumnType("bit");
 
                     b.Property<string>("Organization")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Revenue")
+                    b.Property<decimal?>("Revenue")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("UserId")
@@ -218,12 +215,20 @@ namespace PlanNGo_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GoogleId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HashedPassword")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -233,7 +238,6 @@ namespace PlanNGo_Backend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
