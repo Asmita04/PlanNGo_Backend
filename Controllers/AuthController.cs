@@ -42,9 +42,10 @@ namespace PlanNGo_Backend.Controllers
             var result = await _authService.Register(dto);
             if (result)
             {
-                return BadRequest("User with this email already exists.");
+                return Ok("Registration successful.");
             }
-            return Ok("Registration successful.");
+            return BadRequest("User with this email already exists.");
+            
         }
 
 

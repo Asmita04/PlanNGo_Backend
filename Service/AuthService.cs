@@ -34,6 +34,9 @@ namespace PlanNGo_Backend.Service
             }
             var hashedPassword = BCrypt.Net.BCrypt.EnhancedHashPassword(dto.Password, 13);
             Console.WriteLine("Himanshu");
+
+
+
             User user = new User
             {
                 Name = dto.Name,
