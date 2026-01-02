@@ -42,9 +42,9 @@ namespace PlanNGo_Backend.Controllers
             return user;
         }
 
-        // PUT: api/Users/5
+        // PUT: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+        [HttpPut]
         public async Task<IActionResult> PutUser(int id, User user)
         {
             if (id != user.UserId)
