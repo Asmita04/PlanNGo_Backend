@@ -40,7 +40,6 @@ namespace WebAppApi13.Data
                 .HasForeignKey<Organizer>(o => o.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-
             // ------------------------
             // Organizer → Event (1–Many)
             // ------------------------
@@ -50,24 +49,83 @@ namespace WebAppApi13.Data
                 .HasForeignKey(e => e.OrganizerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Ticket>()
-        .HasOne(t => t.Client)
-        .WithOne()
-        .HasForeignKey<Ticket>(t => t.ClientId)
-        .OnDelete(DeleteBehavior.Restrict);
+            // ------------------------
+            // Event → Venue (Many–1)
+            // ------------------------
+            modelBuilder.Entity<Event>()
+                .HasOne(e => e.Venue)
+                .WithMany()
+                .HasForeignKey(e => e.VenueId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Ticket>()
-        .HasOne(t => t.Event)
-        .WithMany() 
-        .HasForeignKey(t => t.EventId)
-        .OnDelete(DeleteBehavior.Cascade);
+            // ------------------------
+            // Event → Tickets (1–Many)
+            // ------------------------
+            modelBuilder.Entity<Event>()
+                .HasMany(e => e.Tickets)
+                .WithOne(t => t.Event)
+                .HasForeignKey(t => t.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            
+            // ------------------------
+            // Client → Ticket (1–Many)
+            // ------------------------
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Client)
+                .WithMany()
+                .HasForeignKey(t => t.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ------------------------
+            // Ticket → Payment (1–1)
+            // ------------------------
             modelBuilder.Entity<Payment>()
-       .HasOne(p => p.Ticket)
-       .WithOne() 
-       .HasForeignKey<Payment>(p => p.TicketId)
-       .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(p => p.Ticket)
+                .WithOne()
+                .HasForeignKey<Payment>(p => p.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ------------------------
+            // Configure decimal precision
+            // ------------------------
+            modelBuilder.Entity<Event>()
+                .Property(e => e.TicketPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Organizer>()
+                .Property(o => o.Revenue)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Ticket>()
+                .Property(t => t.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.Amount)
+                .HasPrecision(18, 2);
+
+            // ------------------------
+            // Default values
+            // ------------------------
+            modelBuilder.Entity<Event>()
+                .Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<Ticket>()
+                .Property(t => t.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.PaymentDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<Organizer>()
+                .Property(o => o.IsVerified)
+                .HasDefaultValue(false);
+
+            modelBuilder.Entity<Event>()
+                .Property(e => e.IsApproved)
+                .HasDefaultValue(false);
         }
 
 
