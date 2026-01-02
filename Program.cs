@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PlanNGo_Backend.Service;
+using System.Security.Claims;
 using System.Text;
 using WebAppApi13.Data;
 
@@ -94,6 +95,38 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
+
+var excludedPaths = new[] { "/api/Auth", "/swagger"};
+
+app.UseWhen(context =>
+    context.Request.Path.StartsWithSegments("/api") &&
+   !excludedPaths.Any(p => context.Request.Path.StartsWithSegments(p)),
+appBuilder =>
+{
+    appBuilder.Use(async (context, next) =>
+    {
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+       
+        var role = context.User.FindFirst(ClaimTypes.Role)?.Value;
+
+        var path = context.Request.Path;
+        
+
+        if (path.StartsWithSegments("/api/Admin") && role != "admin")
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("Admins only");
+            return;
+        }
+
+        
+        context.Items["UserId"] = userId;
+        await next();
+    });
+});
+
+app.UseAuthorization();
+
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
