@@ -13,6 +13,11 @@ namespace PlanNGo_Backend.Model
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsApproved { get; set; }
+        public decimal TicketPrice { get; set; }
+        public int AvailableTickets { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? RejectionReason { get; set; }
+        
         // Foreign Keys
         public int VenueId { get; set; }
         [JsonIgnore]
@@ -20,6 +25,8 @@ namespace PlanNGo_Backend.Model
         public int OrganizerId { get; set; }
         [JsonIgnore]
         public Organizer? Organizer { get; set; }
-
+        
+        [JsonIgnore]
+        public List<Ticket>? Tickets { get; set; }
     }
 }

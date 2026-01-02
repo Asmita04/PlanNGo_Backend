@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlanNGo_Backend.Dto;
 using PlanNGo_Backend.Model;
+using System.Security.Claims;
 using WebAppApi13.Data;
 
 namespace PlanNGo_Backend.Controllers
@@ -23,86 +21,189 @@ namespace PlanNGo_Backend.Controllers
 
         // GET: api/Organizers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Organizer>>> GetOrganizers()
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<IEnumerable<OrganizerProfileDto>>> GetOrganizers()
         {
-            return await _context.Organizers.ToListAsync();
+            var organizers = await _context.Organizers
+                .Include(o => o.User)
+                .Select(o => new OrganizerProfileDto
+                {
+                    OrganizerId = o.OrganizerId,
+                    Bio = o.Bio,
+                    IsVerified = o.IsVerified,
+                    Revenue = o.Revenue,
+                    Organization = o.Organization,
+                    Name = o.User.Name,
+                    Email = o.User.Email,
+                    Phone = o.User.Phone,
+                    Address = o.User.Address,
+                    Pfp = o.User.Pfp
+                }).ToListAsync();
+
+            return Ok(organizers);
         }
 
         // GET: api/Organizers/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Organizer>> GetOrganizer(int id)
+        public async Task<ActionResult<OrganizerProfileDto>> GetOrganizer(int id)
         {
-            var organizer = await _context.Organizers.FindAsync(id);
+            var organizer = await _context.Organizers
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.OrganizerId == id);
 
             if (organizer == null)
             {
                 return NotFound();
             }
 
-            return organizer;
+            var organizerDto = new OrganizerProfileDto
+            {
+                OrganizerId = organizer.OrganizerId,
+                Bio = organizer.Bio,
+                IsVerified = organizer.IsVerified,
+                Revenue = organizer.Revenue,
+                Organization = organizer.Organization,
+                Name = organizer.User.Name,
+                Email = organizer.User.Email,
+                Phone = organizer.User.Phone,
+                Address = organizer.User.Address,
+                Pfp = organizer.User.Pfp
+            };
+
+            return Ok(organizerDto);
         }
 
-        // PUT: api/Organizers/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutOrganizer(int id, Organizer organizer)
+        // GET: api/Organizers/profile
+        [HttpGet("profile")]
+        [Authorize(Roles = "organizer")]
+        public async Task<ActionResult<OrganizerProfileDto>> GetMyProfile()
         {
-            if (id != organizer.OrganizerId)
-            {
-                return BadRequest();
-            }
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var organizer = await _context.Organizers
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.UserId == userId);
 
-            _context.Entry(organizer).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!OrganizerExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Organizers
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Organizer>> PostOrganizer(Organizer organizer)
-        {
-            _context.Organizers.Add(organizer);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetOrganizer", new { id = organizer.OrganizerId }, organizer);
-        }
-
-        // DELETE: api/Organizers/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrganizer(int id)
-        {
-            var organizer = await _context.Organizers.FindAsync(id);
             if (organizer == null)
             {
                 return NotFound();
             }
 
-            _context.Organizers.Remove(organizer);
-            await _context.SaveChangesAsync();
+            var organizerDto = new OrganizerProfileDto
+            {
+                OrganizerId = organizer.OrganizerId,
+                Bio = organizer.Bio,
+                IsVerified = organizer.IsVerified,
+                Revenue = organizer.Revenue,
+                Organization = organizer.Organization,
+                Name = organizer.User.Name,
+                Email = organizer.User.Email,
+                Phone = organizer.User.Phone,
+                Address = organizer.User.Address,
+                Pfp = organizer.User.Pfp
+            };
 
+            return Ok(organizerDto);
+        }
+
+        // PUT: api/Organizers/profile
+        [HttpPut("profile")]
+        [Authorize(Roles = "organizer")]
+        public async Task<IActionResult> UpdateProfile(UpdateOrganizerProfileDto dto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var organizer = await _context.Organizers
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.UserId == userId);
+
+            if (organizer == null)
+            {
+                return NotFound();
+            }
+
+            organizer.Bio = dto.Bio;
+            organizer.Organization = dto.Organization;
+            organizer.User.Phone = dto.Phone;
+            organizer.User.Address = dto.Address;
+
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private bool OrganizerExists(int id)
+        // POST: api/Organizers/approve
+        [HttpPost("approve")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> ApproveOrganizer(ApproveOrganizerDto dto)
         {
-            return _context.Organizers.Any(e => e.OrganizerId == id);
+            var organizer = await _context.Organizers.FindAsync(dto.OrganizerId);
+            if (organizer == null)
+            {
+                return NotFound();
+            }
+
+            organizer.IsVerified = dto.IsApproved;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = dto.IsApproved ? "Organizer approved" : "Organizer rejected" });
+        }
+
+        // GET: api/Organizers/dashboard
+        [HttpGet("dashboard")]
+        [Authorize(Roles = "organizer")]
+        public async Task<ActionResult<OrganizerDashboardDto>> GetDashboard()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var organizer = await _context.Organizers.FirstOrDefaultAsync(o => o.UserId == userId);
+
+            if (organizer == null)
+            {
+                return NotFound();
+            }
+
+            var events = await _context.Events
+                .Include(e => e.Tickets)
+                .Where(e => e.OrganizerId == organizer.OrganizerId)
+                .ToListAsync();
+
+            var totalRevenue = events.SelectMany(e => e.Tickets ?? new List<Ticket>())
+                .Where(t => t.TicketStatus == "confirmed")
+                .Sum(t => t.Price * t.Count);
+
+            var totalTicketsSold = events.SelectMany(e => e.Tickets ?? new List<Ticket>())
+                .Where(t => t.TicketStatus == "confirmed")
+                .Sum(t => t.Count);
+
+            // Update organizer revenue
+            organizer.Revenue = totalRevenue;
+            await _context.SaveChangesAsync();
+
+            var dashboard = new OrganizerDashboardDto
+            {
+                TotalEvents = events.Count,
+                ApprovedEvents = events.Count(e => e.IsApproved),
+                PendingEvents = events.Count(e => !e.IsApproved),
+                TotalRevenue = totalRevenue,
+                TotalTicketsSold = totalTicketsSold,
+                EventStats = events.Select(e => new EventStatsDto
+                {
+                    EventId = e.EventId,
+                    Title = e.Title,
+                    TicketsSold = e.Tickets?.Where(t => t.TicketStatus == "confirmed").Sum(t => t.Count) ?? 0,
+                    Revenue = e.Tickets?.Where(t => t.TicketStatus == "confirmed").Sum(t => t.Price * t.Count) ?? 0,
+                    IsApproved = e.IsApproved
+                }).ToList(),
+                MonthlyRevenue = events
+                    .SelectMany(e => e.Tickets ?? new List<Ticket>())
+                    .Where(t => t.TicketStatus == "confirmed")
+                    .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
+                    .Select(g => new MonthlyRevenueDto
+                    {
+                        Month = $"{g.Key.Year}-{g.Key.Month:D2}",
+                        Revenue = g.Sum(t => t.Price * t.Count),
+                        EventCount = g.Select(t => t.EventId).Distinct().Count()
+                    }).ToList()
+            };
+
+            return Ok(dashboard);
         }
     }
 }

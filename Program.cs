@@ -9,8 +9,11 @@ using WebAppApi13.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container
 builder.Services.AddScoped<AuthService>();
-// Add services to the container.
+builder.Services.AddScoped<FileUploadService>();
+builder.Services.AddScoped<DataSeeder>();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -46,15 +49,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy("CorsPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins("http://localhost:3000", "http://localhost:5173")
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -85,12 +87,15 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Serve static files from uploads directory
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 app.UseCors("CorsPolicy");
@@ -129,4 +134,20 @@ app.UseAuthorization();
 
 app.UseAuthorization();
 app.MapControllers();
+
+// Ensure uploads directory exists
+var uploadsPath = Path.Combine(app.Environment.WebRootPath ?? app.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+Directory.CreateDirectory(Path.Combine(uploadsPath, "events"));
+Directory.CreateDirectory(Path.Combine(uploadsPath, "profiles"));
+
+// Seed database in development
+if (app.Environment.IsDevelopment())
+{
+    // Temporarily disabled until SQL Server is running
+    // using var scope = app.Services.CreateScope();
+    // var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    // await seeder.SeedAsync();
+}
+
 app.Run();
